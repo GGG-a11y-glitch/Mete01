@@ -4,51 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
-    <title>Honor Intelligence Weather</title>
+    <title>Honor Weather Intelligence</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #000; --card: #111; --accent: #3b82f6; --text: #fff; --dim: #777; --border: rgba(255,255,255,0.1); --danger: #ff4b4b; --safe: #00e676; --warning: #facc15; }
+        :root { --bg: #000; --card: #121212; --accent: #3b82f6; --text: #fff; --dim: #888; --border: rgba(255,255,255,0.1); --danger: #ff4b4b; --safe: #00e676; --warning: #facc15; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; padding: 15px; overflow-x: hidden; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; padding: env(safe-area-inset-top) 15px 40px 15px; }
         
-        /* Modalità Widget: se l'altezza è poca (come in un widget 4x2), nascondi il superfluo */
-        @media (max-height: 350px) {
-            section, .alerts, header b { display: none !important; }
-            body { padding: 5px; }
-            .grid { margin-bottom: 0; gap: 8px; }
-            .card { padding: 12px; border-radius: 15px; }
-            .val { font-size: 1.3rem; }
-        }
+        #loader { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); z-index: 4000; transition: width 0.4s; }
 
-        header { margin-bottom: 20px; }
-        .loc-box { background: var(--card); border: 1px solid var(--border); padding: 14px; border-radius: 20px; display: flex; align-items: center; gap: 10px; text-decoration: none; color: white; }
-        .loc-info b { display: block; font-size: 0.6rem; color: var(--accent); text-transform: uppercase; }
-        .loc-info span { font-size: 0.85rem; font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+        /* Header con Mappe */
+        header { margin: 15px 0 25px 0; }
+        .loc-box { background: var(--card); border: 1px solid var(--border); padding: 16px; border-radius: 22px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: white; }
+        .loc-info b { display: block; font-size: 0.65rem; color: var(--accent); text-transform: uppercase; margin-bottom: 2px; }
+        .loc-info span { font-size: 0.9rem; font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px; }
 
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .card { background: var(--card); border: 1px solid var(--border); padding: 18px; border-radius: 22px; cursor: help; transition: transform 0.1s; }
-        .card:active { transform: scale(0.97); }
-        .label { font-size: 0.55rem; color: var(--dim); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; display: block; }
-        .val { font-size: 1.6rem; font-weight: 800; }
-        .unit { font-size: 0.8rem; color: var(--dim); margin-left: 2px; }
+        /* Grid 2x2 Principale */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px; }
+        .card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 24px; cursor: help; }
+        .label { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; display: block; }
+        .val { font-size: 1.8rem; font-weight: 800; letter-spacing: -1px; }
+        .unit { font-size: 0.9rem; color: var(--dim); margin-left: 2px; }
 
-        .alerts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
-        .alert-item { background: #080808; border: 1px solid var(--border); padding: 10px; border-radius: 15px; text-align: center; cursor: help; }
-        .a-lab { font-size: 0.5rem; color: var(--dim); text-transform: uppercase; margin-bottom: 2px; }
-        .a-val { font-size: 0.75rem; font-weight: 600; color: var(--warning); }
-
-        /* Modal Spiegazioni */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center; z-index: 3000; padding: 25px; }
-        .modal-content { background: #151515; border: 1px solid #333; border-radius: 30px; padding: 30px; width: 100%; max-width: 350px; text-align: center; animation: pop 0.2s ease; }
-        .m-title { font-size: 1.1rem; color: var(--accent); margin-bottom: 15px; font-weight: 800; text-transform: uppercase; }
-        .m-text { font-size: 0.95rem; color: #ccc; line-height: 1.5; }
-        @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-        #loader { position: fixed; top:0; left:0; height:3px; background: var(--accent); transition: width 0.3s; z-index: 4000; }
-        section h2 { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; margin: 0 0 10px 5px; }
+        /* Sezioni Forecast */
+        section h2 { font-size: 0.75rem; color: var(--dim); text-transform: uppercase; margin: 0 0 12px 5px; letter-spacing: 1px; }
         .scroll-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
         .scroll-row::-webkit-scrollbar { display: none; }
-        .tile { flex: 0 0 95px; background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 18px; text-align: center; }
+        
+        .tile { flex: 0 0 105px; background: var(--card); border: 1px solid var(--border); padding: 15px 10px; border-radius: 20px; text-align: center; cursor: pointer; }
+        .tile:active { transform: scale(0.95); background: #1a1a1a; }
+        .t-head { font-size: 0.7rem; color: var(--dim); margin-bottom: 6px; }
+        .t-val { font-size: 1.1rem; font-weight: 700; }
+        .t-sub { font-size: 0.65rem; color: var(--accent); margin-top: 4px; font-weight: 600; }
+
+        /* Allerte / Parametri Avanzati */
+        .alerts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+        .alert-item { background: #0a0a0a; border: 1px solid var(--border); padding: 12px 8px; border-radius: 18px; text-align: center; cursor: help; }
+        .a-lab { font-size: 0.55rem; color: var(--dim); text-transform: uppercase; margin-bottom: 4px; }
+        .a-val { font-size: 0.85rem; font-weight: 600; color: var(--warning); }
+
+        /* Modal */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); display: none; align-items: center; justify-content: center; z-index: 3000; padding: 25px; }
+        .modal-content { background: #111; border: 1px solid #333; border-radius: 32px; padding: 35px; width: 100%; max-width: 400px; text-align: center; position: relative; animation: pop 0.25s ease-out; }
+        @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .m-close { position: absolute; top: 15px; right: 15px; background: #222; border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
+        .m-title { font-size: 1.2rem; color: var(--accent); margin-bottom: 15px; font-weight: 800; text-transform: uppercase; }
+        .m-text { font-size: 1rem; color: #ccc; line-height: 1.6; }
     </style>
 </head>
 <body>
@@ -57,10 +58,10 @@
 
 <header>
     <a id="maps-link" href="#" target="_blank" class="loc-box">
-        <div style="font-size: 1.2rem;">📍</div>
+        <div style="font-size: 1.4rem;">📍</div>
         <div class="loc-info">
-            <b id="loc-status">Posizione IP (Approssimativa)</b>
-            <span id="loc-text">Localizzazione in corso...</span>
+            <b>Posizione rilevata (Mappe)</b>
+            <span id="loc-text">Ricerca in corso...</span>
         </div>
     </a>
 </header>
@@ -72,79 +73,82 @@
     <div class="card" onclick="explain('uv')"><span class="label">Indice UV</span><div class="val" id="c-uv">--</div></div>
 </main>
 
-<div class="alerts">
-    <div class="alert-item" onclick="explain('hum')"><div class="a-lab">Umidità</div><div class="a-val" id="a-hum">--</div></div>
-    <div class="alert-item" onclick="explain('vis')"><div class="a-lab">Visibilità</div><div class="a-val" id="a-vis">--</div></div>
-    <div class="alert-item" onclick="explain('wind')"><div class="a-lab">Vento</div><div class="a-val" id="a-wind">--</div></div>
-</div>
+<section>
+    <h2>Prossime 3 Ore <span style="font-size: 0.5rem; opacity: 0.5;">(Tocca tile per dettagli)</span></h2>
+    <div class="scroll-row" id="h-row"></div>
+</section>
 
 <section>
     <h2>Tendenza 3 Giorni</h2>
     <div class="scroll-row" id="d-row"></div>
 </section>
 
+<section>
+    <h2>Analisi Atmosferica</h2>
+    <div class="alerts">
+        <div class="alert-item" onclick="explain('hum')"><div class="a-lab">Umidità</div><div class="a-val" id="a-hum">--</div></div>
+        <div class="alert-item" onclick="explain('vis')"><div class="a-lab">Visibilità</div><div class="a-val" id="a-vis">--</div></div>
+        <div class="alert-item" onclick="explain('wind')"><div class="a-lab">Vento</div><div class="a-val" id="a-wind">--</div></div>
+    </div>
+</section>
+
+<!-- Modal -->
 <div id="modal" class="modal" onclick="this.style.display='none'">
-    <div class="modal-content">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <button class="m-close" onclick="document.getElementById('modal').style.display='none'">✕</button>
         <div class="m-title" id="m-title">Info</div>
         <div class="m-text" id="m-text">--</div>
     </div>
 </div>
 
 <script>
-    let weather = null;
+    let db = null;
     const explanations = {
-        temp: "Temperatura reale dell'aria misurata a 2 metri dal suolo.",
-        feels: "Come il corpo avverte la temperatura, influenzata da umidità e vento. Se molto alta, aumenta il rischio colpo di calore.",
-        rain: "Possibilità che cada almeno 0.1mm di pioggia. Sotto il 20% è considerato un rischio trascurabile.",
-        uv: "Intensità dei raggi solari. 0-2: Sicuro. 3-5: Protezione media. 6-10: Pericoloso, usa crema solare!",
-        hum: "Percentuale di vapore acqueo nell'aria. Tra 40% e 60% è ottimale. Sopra il 70% l'aria risulta afosa.",
-        vis: "Distanza massima a cui è possibile vedere. Sotto i 2km attenzione alla guida per nebbia o pioggia intensa.",
-        wind: "Velocità delle raffiche massime previste. Sopra i 40 km/h possono esserci disagi."
+        temp: "Temperatura reale misurata a 2m di altezza. È il valore termico oggettivo dell'aria.",
+        feels: "La temperatura percepita dal corpo umano. È influenzata dall'umidità (che rende il caldo più afoso) e dal vento (che aumenta la sensazione di freddo).",
+        rain: "Probabilità che si verifichi una precipitazione. Sopra il 50% è consigliabile l'uso di un ombrello.",
+        uv: "Intensità della radiazione ultravioletta. 0-2: Basso. 3-5: Moderato. 6-7: Alto (protezione necessaria). 8+: Molto alto (evita il sole).",
+        hum: "Umidità relativa. Se è troppo alta (>70%) il sudore non evapora e senti più caldo. Se troppo bassa (<30%) può causare secchezza alle vie respiratorie.",
+        vis: "Distanza orizzontale massima visibile. Valori bassi indicano presenza di nebbia, foschia o pioggia battente.",
+        wind: "Velocità delle raffiche di vento più forti previste. Sopra i 30 km/h la ventilazione è avvertibile e fresca."
     };
 
     async function init() {
         const ld = document.getElementById('loader'); ld.style.width = '20%';
         
-        // FASE 1: IP Fallback (Istantaneo)
+        // Step 1: IP LookUp Rapido
         try {
             const ipRes = await fetch('https://ipapi.co/json/');
             const ipData = await ipRes.json();
-            updateLocation(ipData.latitude, ipData.longitude, ipData.city + " (IP)", false);
-            fetchWeather(ipData.latitude, ipData.longitude);
-        } catch(e) { console.log("IP lookup fallito"); }
+            updateWeather(ipData.latitude, ipData.longitude, ipData.city + " (IP)");
+        } catch(e) { console.log("IP fallback failed"); }
 
-        // FASE 2: GPS Reale (Accurato)
+        // Step 2: GPS Preciso
         navigator.geolocation.getCurrentPosition(async (p) => {
             const { latitude: lat, longitude: lon } = p.coords;
             ld.style.width = '60%';
-            updateLocation(lat, lon, "Calcolo indirizzo...", true);
-            fetchWeather(lat, lon);
+            updateWeather(lat, lon, "Calcolo posizione esatta...");
             
-            // Reverse Geocoding
+            // Geocoding per indirizzo
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
-                .then(r => r.json())
-                .then(g => {
-                    updateLocation(lat, lon, `${g.address.road || ''}, ${g.address.city || g.address.town || ''}`, true);
+                .then(r => r.json()).then(g => {
+                    const addr = g.address;
+                    document.getElementById('loc-text').innerText = `${addr.road || ''} ${addr.house_number || ''}, ${addr.city || addr.town || ''}`;
+                    document.getElementById('maps-link').href = `https://www.google.com/maps?q=${lat},${lon}`;
                     ld.style.width = '100%'; setTimeout(()=>ld.style.width='0%', 500);
                 });
-        }, null, { enableHighAccuracy: true, timeout: 10000 });
+        }, null, { enableHighAccuracy: true });
     }
 
-    function updateLocation(lat, lon, text, exact) {
-        document.getElementById('loc-text').innerText = text;
-        document.getElementById('loc-status').innerText = exact ? "📍 Posizione Esatta (GPS)" : "🌐 Posizione Approssimativa";
-        document.getElementById('loc-status').style.color = exact ? "var(--safe)" : "var(--warning)";
-        document.getElementById('maps-link').href = `https://www.google.com/maps?q=${lat},${lon}`;
-    }
-
-    async function fetchWeather(lat, lon) {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation_probability,uv_index,relative_humidity_2m,visibility,wind_gusts_10m&daily=temperature_2m_max,precipitation_probability_max&timezone=auto`);
-        weather = await res.json();
+    async function updateWeather(lat, lon, label) {
+        if(label) document.getElementById('loc-text').innerText = label;
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation_probability,uv_index,relative_humidity_2m,visibility,wind_gusts_10m&hourly=temperature_2m,apparent_temperature,precipitation_probability,uv_index&daily=temperature_2m_max,apparent_temperature_max,precipitation_probability_max,uv_index_max&timezone=auto`);
+        db = await res.json();
         render();
     }
 
     function render() {
-        const c = weather.current;
+        const c = db.current;
         document.getElementById('c-temp').innerText = Math.round(c.temperature_2m);
         document.getElementById('c-feels').innerText = Math.round(c.apparent_temperature);
         document.getElementById('c-rain').innerText = c.precipitation_probability;
@@ -153,24 +157,39 @@
         document.getElementById('a-vis').innerText = (c.visibility/1000).toFixed(0) + " km";
         document.getElementById('a-wind').innerText = Math.round(c.wind_gusts_10m) + " km/h";
 
-        const dr = document.getElementById('d-row'); dr.innerHTML = '';
-        const labels = ['Oggi', 'Domani', 'Dopodomani'];
+        // Tile Orarie
+        const hRow = document.getElementById('h-row'); hRow.innerHTML = '';
+        const hNow = new Date().getHours() + 1;
         for(let i=0; i<3; i++) {
-            dr.innerHTML += `<div class="tile"><div class="t-head">${labels[i]}</div><div class="t-val">${Math.round(weather.daily.temperature_2m_max[i])}°</div><div class="t-sub">💧${weather.daily.precipitation_probability_max[i]}%</div></div>`;
+            const idx = hNow + i;
+            hRow.innerHTML += `<div class="tile" onclick="openDetail('h',${idx})"><div class="t-head">${idx}:00</div><div class="t-val">${Math.round(db.hourly.temperature_2m[idx])}°</div><div class="t-sub">💧${db.hourly.precipitation_probability[idx]}%</div></div>`;
+        }
+
+        // Tile Giornaliere
+        const dRow = document.getElementById('d-row'); dRow.innerHTML = '';
+        const labs = ['Oggi', 'Domani', 'Dopodomani'];
+        for(let i=0; i<3; i++) {
+            dRow.innerHTML += `<div class="tile" onclick="openDetail('d',${i})"><div class="t-head">${labs[i]}</div><div class="t-val">${Math.round(db.daily.temperature_2m_max[i])}°</div><div class="t-sub">💧${db.daily.precipitation_probability_max[i]}%</div></div>`;
         }
     }
 
     function explain(key) {
-        const modal = document.getElementById('modal');
         document.getElementById('m-title').innerText = key.toUpperCase();
-        
-        let customText = explanations[key];
-        // Logica intelligente: aggiunge un commento basato sul valore attuale
-        if(key === 'uv' && weather.current.uv_index > 6) customText += " ATTENZIONE: Indice pericoloso ora!";
-        if(key === 'hum' && weather.current.relative_humidity_2m > 70) customText += " L'aria è molto umida, sentirai più caldo.";
-        
-        document.getElementById('m-text').innerText = customText;
-        modal.style.display = 'flex';
+        document.getElementById('m-text').innerText = explanations[key];
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function openDetail(type, idx) {
+        const m = document.getElementById('modal');
+        if(type === 'h') {
+            document.getElementById('m-title').innerText = `Dettaglio ore ${idx}:00`;
+            document.getElementById('m-text').innerHTML = `Temperatura: ${Math.round(db.hourly.temperature_2m[idx])}°C<br>Percepita: ${Math.round(db.hourly.apparent_temperature[idx])}°C<br>Pioggia: ${db.hourly.precipitation_probability[idx]}%<br>UV: ${db.hourly.uv_index[idx].toFixed(1)}`;
+        } else {
+            const day = idx === 0 ? 'Oggi' : idx === 1 ? 'Domani' : 'Dopodomani';
+            document.getElementById('m-title').innerText = `Previsione ${day}`;
+            document.getElementById('m-text').innerHTML = `Massima: ${Math.round(db.daily.temperature_2m_max[idx])}°C<br>Percepita max: ${Math.round(db.daily.apparent_temperature_max[idx])}°C<br>Pioggia max: ${db.daily.precipitation_probability_max[idx]}%<br>UV max: ${db.daily.uv_index_max[idx].toFixed(1)}`;
+        }
+        m.style.display = 'flex';
     }
 
     window.onload = init;

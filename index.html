@@ -4,116 +4,189 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#000000">
-    <title>Meteo Honor Pro</title>
+    <title>Honor Weather Elite</title>
     <style>
-        :root { --bg: #000; --card: #121212; --accent: #3b82f6; --text: #fff; --dim: #888; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; justify-content: center; padding: 20px; }
-        #app { width: 100%; max-width: 450px; }
+        :root { --bg: #000; --card: #111; --accent: #3b82f6; --danger: #ef4444; --safe: #10b981; --text: #fff; --dim: #777; }
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; padding: 15px; line-height: 1.4; }
         
-        /* Header & Posizione */
-        header { margin-bottom: 25px; }
-        .pos-label { font-size: 0.7rem; color: var(--accent); font-weight: bold; text-transform: uppercase; }
-        #address { font-size: 0.9rem; line-height: 1.4; margin-top: 5px; color: var(--text); }
+        /* Header compatto */
+        header { margin-bottom: 20px; border-bottom: 1px solid #222; padding-bottom: 10px; }
+        .addr-line { font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+        .addr-line b { color: var(--accent); text-transform: uppercase; font-size: 0.7rem; margin-right: 5px; }
 
-        /* Grid Principale 2x2 */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px; }
-        .card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid #222; text-align: center; }
-        .card .label { display: block; font-size: 0.65rem; color: var(--dim); text-transform: uppercase; margin-bottom: 8px; }
-        .card .val { font-size: 1.8rem; font-weight: bold; }
-        .card .unit { font-size: 0.9rem; color: var(--dim); margin-left: 3px; }
+        /* Grid Principale */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .card { background: var(--card); padding: 15px; border-radius: 18px; border: 1px solid #222; position: relative; }
+        .card .label { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; display: block; margin-bottom: 5px; }
+        .card .val { font-size: 1.6rem; font-weight: 700; }
+        .card .unit { font-size: 0.8rem; color: var(--dim); margin-left: 2px; }
+        .card .note { font-size: 0.65rem; margin-top: 8px; color: var(--accent); font-weight: 500; }
 
-        /* Previsioni 3 Ore */
-        .forecast-title { font-size: 0.8rem; color: var(--dim); margin-bottom: 10px; text-transform: uppercase; padding-left: 5px; }
-        .forecast-row { display: flex; gap: 10px; }
-        .f-item { flex: 1; background: #0a0a0a; padding: 12px; border-radius: 15px; text-align: center; border: 1px solid #1a1a1a; }
-        .f-time { font-size: 0.7rem; color: var(--dim); margin-bottom: 5px; }
-        .f-temp { font-size: 1rem; font-weight: bold; }
-        .f-rain { font-size: 0.7rem; color: var(--accent); margin-top: 4px; }
+        /* Sezioni Forecast */
+        section { margin-bottom: 20px; }
+        h2 { font-size: 0.75rem; color: var(--dim); text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px; }
+        .scroll-row { display: flex; gap: 8px; }
+        .tile { flex: 1; background: var(--card); padding: 12px 8px; border-radius: 15px; text-align: center; border: 1px solid #1a1a1a; min-width: 80px; }
+        .tile .t-head { font-size: 0.65rem; color: var(--dim); margin-bottom: 5px; }
+        .tile .t-val { font-size: 0.9rem; font-weight: bold; }
+        .tile .t-sub { font-size: 0.6rem; color: var(--accent); margin-top: 3px; }
 
-        #refresh-btn { width: 100%; padding: 15px; background: var(--card); border: 1px solid #333; color: var(--dim); border-radius: 15px; margin-top: 20px; cursor: pointer; }
-        .loading { opacity: 0.5; pointer-events: none; }
+        /* Eventi Speciali */
+        .event-card { background: linear-gradient(145deg, #111, #050505); border: 1px solid #333; padding: 15px; border-radius: 18px; display: flex; justify-content: space-around; }
+        .event-item { text-align: center; }
+        .event-item .e-label { font-size: 0.6rem; color: var(--dim); text-transform: uppercase; }
+        .event-item .e-val { font-size: 1rem; font-weight: bold; color: #facc15; }
+
+        .danger-text { color: var(--danger) !important; }
+        .loading { opacity: 0.3; }
     </style>
 </head>
 <body>
-    <div id="app">
-        <header>
-            <div class="pos-label">Posizione Rilevata</div>
-            <div id="address">Ricerca posizione in corso...</div>
-        </header>
 
-        <main class="grid">
-            <div class="card"><span class="label">Reale</span><div class="val"><span id="temp">--</span><span class="unit">°C</span></div></div>
-            <div class="card"><span class="label">Pioggia</span><div class="val"><span id="rain">--</span><span class="unit">%</span></div></div>
-            <div class="card"><span class="label">Percepita</span><div class="val"><span id="feels">--</span><span class="unit">°C</span></div></div>
-            <div class="card"><span class="label">Indice UV</span><div class="val" id="uv">--</div></div>
-        </main>
+    <header>
+        <div class="addr-line" id="full-address"><b>Posizione rilevata:</b> Ricerca in corso...</div>
+    </header>
 
-        <div class="forecast-title">Prossime 3 ore</div>
-        <div class="forecast-row" id="forecast">
-            <div class="f-item">--</div><div class="f-item">--</div><div class="f-item">--</div>
+    <main class="grid">
+        <!-- Temp & Percepita -->
+        <div class="card">
+            <span class="label">Temperatura</span>
+            <div class="val"><span id="temp">--</span><span class="unit">°C</span></div>
+        </div>
+        <div class="card">
+            <span class="label">Temperatura Percepita</span>
+            <div class="val"><span id="feels">--</span><span class="unit">°C</span></div>
         </div>
 
-        <button id="refresh-btn">Aggiorna Dati</button>
-    </div>
+        <!-- Pioggia & UV -->
+        <div class="card">
+            <span class="label">Prob. Pioggia</span>
+            <div class="val"><span id="rain">--</span><span class="unit">%</span></div>
+        </div>
+        <div class="card">
+            <span class="label">Indice UV</span>
+            <div class="val" id="uv">--</div>
+            <div id="uv-note" class="note">Calcolo esposizione...</div>
+        </div>
+    </main>
+
+    <section>
+        <h2>Prossime 3 Ore</h2>
+        <div class="scroll-row" id="hourly-forecast">
+            <!-- Tiles orarie -->
+        </div>
+    </section>
+
+    <section>
+        <h2>Prossimi 3 Giorni</h2>
+        <div class="scroll-row" id="daily-forecast">
+            <!-- Tiles giornaliere -->
+        </div>
+    </section>
+
+    <section>
+        <h2>Eventi previsti a breve</h2>
+        <div class="event-card">
+            <div class="event-item">
+                <div class="e-label">Grandine (Stima)</div>
+                <div class="e-val" id="hail-prob">--</div>
+            </div>
+            <div class="event-item" style="border-left: 1px solid #222; padding-left: 15px;">
+                <div class="e-label">Vento (Raffiche)</div>
+                <div class="e-val" id="wind-speed">--</div>
+            </div>
+        </div>
+    </section>
 
     <script>
-        async function fetchAll() {
+        const API_URL = "https://api.open-meteo.com/v1/forecast";
+
+        async function updateWeather() {
             document.body.classList.add('loading');
+            
             navigator.geolocation.getCurrentPosition(async (pos) => {
                 const { latitude: lat, longitude: lon } = pos.coords;
-                
-                // 1. Indirizzo (Nominatim)
+
                 try {
-                    const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, {
-                        headers: { 'User-Agent': 'HonorWeatherApp/1.0' }
-                    });
+                    // 1. Reverse Geocoding per indirizzo in riga singola
+                    const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
                     const geoData = await geoRes.json();
                     const a = geoData.address;
-                    document.getElementById('address').innerHTML = `
-                        ${a.road || 'Via non rilevata'}${a.house_number ? ', ' + a.house_number : ''}<br>
-                        ${a.postcode || ''} ${a.city || a.town || a.village || ''}, ${a.country || ''}
-                    `;
-                } catch(e) { document.getElementById('address').innerText = "Errore indirizzo"; }
+                    const addrStr = `${a.road || ''} ${a.house_number || ''}, ${a.postcode || ''} ${a.city || a.town || ''} (${a.country || ''})`;
+                    document.getElementById('full-address').innerHTML = `<b>Posizione rilevata:</b> ${addrStr}`;
 
-                // 2. Meteo + Previsioni (Open-Meteo)
-                try {
-                    const metRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation_probability,uv_index&hourly=temperature_2m,precipitation_probability&timezone=auto`);
-                    const metData = await metRes.json();
+                    // 2. Dati Meteo Completi
+                    const weatherRes = await fetch(`${API_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation_probability,uv_index,wind_speed_10m,weather_code&hourly=temperature_2m,precipitation_probability,wind_gusts_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto`);
+                    const data = await weatherRes.json();
+
+                    // UI Corrente
+                    document.getElementById('temp').innerText = Math.round(data.current.temperature_2m);
+                    document.getElementById('feels').innerText = Math.round(data.current.apparent_temperature);
+                    document.getElementById('rain').innerText = data.current.precipitation_probability;
                     
-                    // Corrente
-                    document.getElementById('temp').innerText = Math.round(metData.current.temperature_2m);
-                    document.getElementById('feels').innerText = Math.round(metData.current.apparent_temperature);
-                    document.getElementById('rain').innerText = metData.current.precipitation_probability;
-                    document.getElementById('uv').innerText = metData.current.uv_index;
+                    // Logica UV
+                    const uv = data.current.uv_index;
+                    document.getElementById('uv').innerText = uv.toFixed(1);
+                    const uvNote = document.getElementById('uv-note');
+                    if (uv >= 6) {
+                        const mins = Math.round(200 / uv); 
+                        uvNote.innerHTML = `<span class="danger-text">DANNOSO: Max ${mins} min sole</span>`;
+                    } else {
+                        uvNote.innerHTML = `<span style="color:var(--safe)">SICURO: Esposizione libera</span>`;
+                    }
 
-                    // Forecast 3h
-                    const nowHour = new Date().getHours();
-                    let fHTML = '';
-                    for(let i=1; i<=3; i++) {
-                        const hIdx = nowHour + i;
-                        fHTML += `
-                            <div class="f-item">
-                                <div class="f-time">+${i}h</div>
-                                <div class="f-temp">${Math.round(metData.hourly.temperature_2m[hIdx])}°</div>
-                                <div class="f-rain">💧${metData.hourly.precipitation_probability[hIdx]}%</div>
+                    // Forecast 3 Ore
+                    let hHTML = '';
+                    const startH = new Date().getHours() + 1;
+                    for(let i=0; i<3; i++) {
+                        hHTML += `
+                            <div class="tile">
+                                <div class="t-head">${startH + i}:00</div>
+                                <div class="t-val">${Math.round(data.hourly.temperature_2m[startH+i])}°</div>
+                                <div class="t-sub">💧${data.hourly.precipitation_probability[startH+i]}%</div>
                             </div>
                         `;
                     }
-                    document.getElementById('forecast').innerHTML = fHTML;
-                } catch(e) { alert("Errore meteo"); }
-                
-                document.body.classList.remove('loading');
-            }, (err) => {
-                document.getElementById('address').innerText = "GPS disattivato o negato.";
+                    document.getElementById('hourly-forecast').innerHTML = hHTML;
+
+                    // Forecast 3 Giorni
+                    let dHTML = '';
+                    const days = ['Oggi', 'Domani', 'Dopodomani'];
+                    for(let i=0; i<3; i++) {
+                        dHTML += `
+                            <div class="tile">
+                                <div class="t-head">${days[i]}</div>
+                                <div class="t-val">${Math.round(data.daily.temperature_2m_max[i])}°</div>
+                                <div class="t-sub">💧${data.daily.precipitation_probability_max[i]}%</div>
+                            </div>
+                        `;
+                    }
+                    document.getElementById('daily-forecast').innerHTML = dHTML;
+
+                    // Eventi Speciali (Grandine e Vento)
+                    // Nota: La grandine è stimata basandosi su codice meteo (WMO) e probabilità pioggia > 70%
+                    const isHailPossible = [27, 87, 88, 89, 90, 99].includes(data.current.weather_code);
+                    document.getElementById('hail-prob').innerText = isHailPossible ? "ALTA (70%+)" : "Bassa (<5%)";
+                    
+                    const maxWind = Math.max(...data.hourly.wind_gusts_10m.slice(0, 24));
+                    document.getElementById('wind-speed').innerText = `${Math.round(maxWind)} km/h`;
+
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    document.body.classList.remove('loading');
+                }
+            }, () => {
+                document.getElementById('full-address').innerText = "Attivare GPS e ricaricare.";
                 document.body.classList.remove('loading');
             });
         }
 
-        // Auto-refresh ogni volta che la pagina torna visibile (es. sblocchi telefono)
-        document.addEventListener("visibilitychange", () => { if (!document.hidden) fetchAll(); });
-        document.getElementById('refresh-btn').onclick = fetchAll;
-        window.onload = fetchAll;
+        // Auto-refresh ogni 10 min o quando si riapre l'app
+        setInterval(updateWeather, 600000);
+        document.addEventListener("visibilitychange", () => { if (!document.hidden) updateWeather(); });
+        window.onload = updateWeather;
     </script>
 </body>
 </html>

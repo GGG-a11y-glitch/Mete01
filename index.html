@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <title>Honor Weather Ultra</title>
+    
+    <style>
+        /* CSS - OTTIMIZZAZIONE OLED & LAYOUT */
+        :root {
+            --bg-color: #000000; /* Nero assoluto per Honor 200 OLED */
+            --card-bg: #111111;
+            --accent: #3b82f6;
+            --text-main: #ffffff;
+            --text-dim: #888888;
+            --safe-area-inset-top: env(safe-area-inset-top);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-top: var(--safe-area-inset-top);
+        }
+
+        #app {
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        h1 { font-size: 1rem; font-weight: 500; color: var(--text-dim); letter-spacing: 1px; }
+
+        #refresh-btn {
+            background: #222;
+            border: none;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #refresh-btn:active { transform: scale(0.9) rotate(90deg); }
+
+        /* Griglia 2x2 richiesta */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 24px 16px;
+            border-radius: 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            border: 1px solid #1a1a1a;
+        }
+
+        .label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: baseline;
+        }
+
+        .unit {
+            font-size: 1rem;
+            color: var(--text-dim);
+            margin-left: 4px;
+            font-weight: 400;
+        }
+
+        /* Badge Indice UV */
+        .uv-badge {
+            margin-top: 8px;
+            font-size: 0.7rem;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-weight: 700;
+            background: #333;
+        }
+
+        /* Spinner Animato */
+        .loader {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #333;
+            border-top: 2px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .loading .loader { display: block; }
+        .loading #refresh-icon { display: none; }
+
+        .error-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: black;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="error-screen" class="error-overlay">
+        <p>Attiva il GPS per vedere il meteo in tempo reale.</p>
+        <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; border-radius:10px; border:none; background:var(--accent); color:white;">Riprova</button>
+    </div>
+
+    <div id="app">
+        <header>
+            <h1 id="city">LOCALIZZAZIONE...</h1>
+            <button id="refresh-btn">
+                <div class="loader" id="loader"></div>
+                <svg id="refresh-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            </button>
+        </header>
+
+        <main class="grid">
+            <!-- Temperatura Reale -->
+            <div class="card">
+                <span class="label">Temperatura</span>
+                <div class="value">
+                    <span id="temp">--</span><span class="unit">°C</span>
+                </div>
+            </div>
+
+            <!-- Probabilità Pioggia -->
+            <div class="card">
+                <span class="label">Pioggia</span>
+                <div class="value">
+                    <span id="rain">--</span><span class="unit">%</span>
+                </div>
+            </div>
+
+            <!-- Temperatura Percepita -->
+            <div class="card">
+                <span class="label">Percepita</span>
+                <div class="value">
+                    <span id="feels">--</span><span class="unit">°C</span>
+                </div>
+            </div>
+
+            <!-- Indice UV -->
+            <div class="card">
+                <span class="label">Indice UV</span>
+                <div class="value">
+                    <span id="uv">--</span>
+                </div>
+                <div id="uv-level" class="uv-badge">ATTENDI</div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // LOGICA DI AGGIORNAMENTO DATI
+        const API_URL = "https://api.open-meteo.com/v1/forecast";
+
+        async function fetchWeather() {
+            const btn = document.getElementById('refresh-btn');
+            btn.classList.add('loading');
+
+            if (!navigator.geolocation) {
+                alert("Il tuo browser non supporta la geolocalizzazione");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const { latitude, longitude } = position.coords;
+                
+                try {
+                    const response = await fetch(`${API_URL}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,precipitation_probability,uv_index&timezone=auto`);
+                    const data = await response.json();
+                    const weather = data.current;
+
+                    // Update UI
+                    document.getElementById('temp').innerText = Math.round(weather.temperature_2m);
+                    document.getElementById('feels').innerText = Math.round(weather.apparent_temperature);
+                    document.getElementById('rain').innerText = weather.precipitation_probability;
+                    document.getElementById('uv').innerText = weather.uv_index.toFixed(1);
+                    
+                    updateUVLevel(weather.uv_index);
+                    document.getElementById('city').innerText = "POSIZIONE RILEVATA";
+                    document.getElementById('error-screen').style.display = 'none';
+
+                } catch (error) {
+                    console.error("Errore API:", error);
+                    alert("Errore nel recupero dati meteo.");
+                } finally {
+                    btn.classList.remove('loading');
+                }
+            }, (error) => {
+                document.getElementById('error-screen').style.display = 'flex';
+                btn.classList.remove('loading');
+            }, { enableHighAccuracy: true });
+        }
+
+        function updateUVLevel(uv) {
+            const badge = document.getElementById('uv-level');
+            let text = "BASSO";
+            let color = "#3b82f6";
+
+            if (uv >= 3 && uv < 6) { text = "MODERATO"; color = "#f59e0b"; }
+            else if (uv >= 6 && uv < 8) { text = "ALTO"; color = "#ef4444"; }
+            else if (uv >= 8) { text = "MOLTO ALTO"; color = "#7e22ce"; }
+
+            badge.innerText = text;
+            badge.style.backgroundColor = color;
+        }
+
+        // Avvio automatico al caricamento
+        document.getElementById('refresh-btn').addEventListener('click', fetchWeather);
+        window.onload = fetchWeather;
+    </script>
+</body>
+</html>

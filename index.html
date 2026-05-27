@@ -4,50 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
-    <title>Honor Weather Intelligence</title>
+    <title>Honor Weather Global</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #000; --card: #121212; --accent: #3b82f6; --text: #fff; --dim: #888; --border: rgba(255,255,255,0.1); --danger: #ff4b4b; --safe: #00e676; --warning: #facc15; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; padding: env(safe-area-inset-top) 15px 40px 15px; }
         
-        #loader { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); z-index: 4000; transition: width 0.4s; }
+        #loader { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); z-index: 5000; transition: width 0.4s; }
 
-        /* Header con Mappe */
-        header { margin: 15px 0 25px 0; }
+        /* Search Bar & Header */
+        header { margin: 15px 0 25px 0; position: relative; }
+        .search-container { display: flex; gap: 10px; margin-bottom: 15px; }
+        #search-input { 
+            flex: 1; background: var(--card); border: 1px solid var(--border); 
+            padding: 14px 18px; border-radius: 18px; color: white; font-size: 0.95rem;
+        }
+        .btn-icon { 
+            background: var(--card); border: 1px solid var(--border); color: white; 
+            width: 50px; border-radius: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+
+        /* Risultati Ricerca */
+        #search-results {
+            position: absolute; top: 60px; left: 0; right: 60px; 
+            background: #1a1a1a; border: 1px solid #333; border-radius: 15px;
+            z-index: 4000; display: none; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .search-item { padding: 12px 18px; border-bottom: 1px solid #333; cursor: pointer; font-size: 0.9rem; }
+        .search-item:last-child { border-bottom: none; }
+        .search-item:active { background: #333; }
+
         .loc-box { background: var(--card); border: 1px solid var(--border); padding: 16px; border-radius: 22px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: white; }
         .loc-info b { display: block; font-size: 0.65rem; color: var(--accent); text-transform: uppercase; margin-bottom: 2px; }
-        .loc-info span { font-size: 0.9rem; font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px; }
+        .loc-info span { font-size: 0.9rem; font-weight: 500; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
 
-        /* Grid 2x2 Principale */
+        /* UI Meteo */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px; }
         .card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 24px; cursor: help; }
         .label { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; display: block; }
         .val { font-size: 1.8rem; font-weight: 800; letter-spacing: -1px; }
         .unit { font-size: 0.9rem; color: var(--dim); margin-left: 2px; }
 
-        /* Sezioni Forecast */
         section h2 { font-size: 0.75rem; color: var(--dim); text-transform: uppercase; margin: 0 0 12px 5px; letter-spacing: 1px; }
         .scroll-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
         .scroll-row::-webkit-scrollbar { display: none; }
-        
         .tile { flex: 0 0 105px; background: var(--card); border: 1px solid var(--border); padding: 15px 10px; border-radius: 20px; text-align: center; cursor: pointer; }
-        .tile:active { transform: scale(0.95); background: #1a1a1a; }
         .t-head { font-size: 0.7rem; color: var(--dim); margin-bottom: 6px; }
         .t-val { font-size: 1.1rem; font-weight: 700; }
         .t-sub { font-size: 0.65rem; color: var(--accent); margin-top: 4px; font-weight: 600; }
 
-        /* Allerte / Parametri Avanzati */
         .alerts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
         .alert-item { background: #0a0a0a; border: 1px solid var(--border); padding: 12px 8px; border-radius: 18px; text-align: center; cursor: help; }
         .a-lab { font-size: 0.55rem; color: var(--dim); text-transform: uppercase; margin-bottom: 4px; }
         .a-val { font-size: 0.85rem; font-weight: 600; color: var(--warning); }
 
-        /* Modal */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); display: none; align-items: center; justify-content: center; z-index: 3000; padding: 25px; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); display: none; align-items: center; justify-content: center; z-index: 6000; padding: 25px; }
         .modal-content { background: #111; border: 1px solid #333; border-radius: 32px; padding: 35px; width: 100%; max-width: 400px; text-align: center; position: relative; animation: pop 0.25s ease-out; }
         @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .m-close { position: absolute; top: 15px; right: 15px; background: #222; border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
+        .m-close { position: absolute; top: 15px; right: 15px; background: #222; border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; }
         .m-title { font-size: 1.2rem; color: var(--accent); margin-bottom: 15px; font-weight: 800; text-transform: uppercase; }
         .m-text { font-size: 1rem; color: #ccc; line-height: 1.6; }
     </style>
@@ -57,11 +72,17 @@
 <div id="loader" style="width: 0%"></div>
 
 <header>
+    <div class="search-container">
+        <input type="text" id="search-input" placeholder="Cerca città..." autocomplete="off">
+        <button class="btn-icon" id="gps-btn" title="Usa posizione attuale">📍</button>
+    </div>
+    <div id="search-results"></div>
+
     <a id="maps-link" href="#" target="_blank" class="loc-box">
-        <div style="font-size: 1.4rem;">📍</div>
+        <div style="font-size: 1.3rem;">🌍</div>
         <div class="loc-info">
-            <b>Posizione rilevata (Mappe)</b>
-            <span id="loc-text">Ricerca in corso...</span>
+            <b id="loc-type">Località selezionata</b>
+            <span id="loc-text">Caricamento...</span>
         </div>
     </a>
 </header>
@@ -74,7 +95,7 @@
 </main>
 
 <section>
-    <h2>Prossime 3 Ore <span style="font-size: 0.5rem; opacity: 0.5;">(Tocca tile per dettagli)</span></h2>
+    <h2>Prossime 3 Ore</h2>
     <div class="scroll-row" id="h-row"></div>
 </section>
 
@@ -92,7 +113,6 @@
     </div>
 </section>
 
-<!-- Modal -->
 <div id="modal" class="modal" onclick="this.style.display='none'">
     <div class="modal-content" onclick="event.stopPropagation()">
         <button class="m-close" onclick="document.getElementById('modal').style.display='none'">✕</button>
@@ -104,47 +124,82 @@
 <script>
     let db = null;
     const explanations = {
-        temp: "Temperatura reale misurata a 2m di altezza. È il valore termico oggettivo dell'aria.",
-        feels: "La temperatura percepita dal corpo umano. È influenzata dall'umidità (che rende il caldo più afoso) e dal vento (che aumenta la sensazione di freddo).",
-        rain: "Probabilità che si verifichi una precipitazione. Sopra il 50% è consigliabile l'uso di un ombrello.",
-        uv: "Intensità della radiazione ultravioletta. 0-2: Basso. 3-5: Moderato. 6-7: Alto (protezione necessaria). 8+: Molto alto (evita il sole).",
-        hum: "Umidità relativa. Se è troppo alta (>70%) il sudore non evapora e senti più caldo. Se troppo bassa (<30%) può causare secchezza alle vie respiratorie.",
-        vis: "Distanza orizzontale massima visibile. Valori bassi indicano presenza di nebbia, foschia o pioggia battente.",
-        wind: "Velocità delle raffiche di vento più forti previste. Sopra i 30 km/h la ventilazione è avvertibile e fresca."
+        temp: "Temperatura reale oggettiva misurata a 2 metri dal suolo.",
+        feels: "Temperatura percepita. Umidità e vento alterano la sensazione termica sulla pelle.",
+        rain: "Probabilità di precipitazioni nelle prossime ore.",
+        uv: "Intensità raggi UV. Proteggiti con crema solare se il valore supera 5.",
+        hum: "Percentuale di vapore acqueo. Sopra il 70% l'aria è afosa, sotto il 30% è molto secca.",
+        vis: "Visibilità orizzontale. Se bassa (<2km) indica nebbia o pioggia torrenziale.",
+        wind: "Velocità massima delle raffiche di vento previste."
     };
 
-    async function init() {
-        const ld = document.getElementById('loader'); ld.style.width = '20%';
-        
-        // Step 1: IP LookUp Rapido
-        try {
-            const ipRes = await fetch('https://ipapi.co/json/');
-            const ipData = await ipRes.json();
-            updateWeather(ipData.latitude, ipData.longitude, ipData.city + " (IP)");
-        } catch(e) { console.log("IP fallback failed"); }
+    const loader = document.getElementById('loader');
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
 
-        // Step 2: GPS Preciso
-        navigator.geolocation.getCurrentPosition(async (p) => {
-            const { latitude: lat, longitude: lon } = p.coords;
-            ld.style.width = '60%';
-            updateWeather(lat, lon, "Calcolo posizione esatta...");
-            
-            // Geocoding per indirizzo
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
-                .then(r => r.json()).then(g => {
-                    const addr = g.address;
-                    document.getElementById('loc-text').innerText = `${addr.road || ''} ${addr.house_number || ''}, ${addr.city || addr.town || ''}`;
-                    document.getElementById('maps-link').href = `https://www.google.com/maps?q=${lat},${lon}`;
-                    ld.style.width = '100%'; setTimeout(()=>ld.style.width='0%', 500);
-                });
-        }, null, { enableHighAccuracy: true });
+    // --- LOGICA RICERCA LOCALITÀ ---
+    let searchTimeout;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        const query = searchInput.value;
+        if (query.length < 3) { searchResults.style.display = 'none'; return; }
+        
+        searchTimeout = setTimeout(async () => {
+            try {
+                const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=it&format=json`);
+                const data = await res.json();
+                displaySearchResults(data.results);
+            } catch(e) { console.log("Errore geocoding"); }
+        }, 500);
+    });
+
+    function displaySearchResults(results) {
+        if (!results) { searchResults.style.display = 'none'; return; }
+        searchResults.innerHTML = results.map(r => `
+            <div class="search-item" onclick="selectCity(${r.latitude}, ${r.longitude}, '${r.name}, ${r.country}')">
+                ${r.name}, <span style="color:#888; font-size:0.8rem;">${r.admin1 || ''} (${r.country})</span>
+            </div>
+        `).join('');
+        searchResults.style.display = 'block';
     }
 
-    async function updateWeather(lat, lon, label) {
-        if(label) document.getElementById('loc-text').innerText = label;
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation_probability,uv_index,relative_humidity_2m,visibility,wind_gusts_10m&hourly=temperature_2m,apparent_temperature,precipitation_probability,uv_index&daily=temperature_2m_max,apparent_temperature_max,precipitation_probability_max,uv_index_max&timezone=auto`);
-        db = await res.json();
-        render();
+    async function selectCity(lat, lon, name) {
+        searchResults.style.display = 'none';
+        searchInput.value = '';
+        document.getElementById('loc-type').innerText = "Città selezionata";
+        updateWeather(lat, lon, name);
+    }
+
+    document.getElementById('gps-btn').onclick = () => initGPS();
+
+    // --- LOGICA METEO ---
+    async function initGPS() {
+        loader.style.width = '30%';
+        document.getElementById('loc-type').innerText = "📍 Posizione GPS attuale";
+        navigator.geolocation.getCurrentPosition(async (p) => {
+            const { latitude: lat, longitude: lon } = p.coords;
+            updateWeather(lat, lon, "Rilevamento indirizzo...");
+            
+            // Reverse geocode per il nome della via
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+                .then(r => r.json()).then(g => {
+                    const name = g.address.city || g.address.town || g.address.village || "Tua posizione";
+                    document.getElementById('loc-text').innerText = name;
+                    document.getElementById('maps-link').href = `https://www.google.com/maps?q=${lat},${lon}`;
+                });
+        }, () => { alert("Attivare il GPS!"); });
+    }
+
+    async function updateWeather(lat, lon, name) {
+        loader.style.width = '60%';
+        document.getElementById('loc-text').innerText = name;
+        try {
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation_probability,uv_index,relative_humidity_2m,visibility,wind_gusts_10m&hourly=temperature_2m,apparent_temperature,precipitation_probability,uv_index&daily=temperature_2m_max,apparent_temperature_max,precipitation_probability_max,uv_index_max&timezone=auto`);
+            db = await res.json();
+            render();
+            loader.style.width = '100%';
+            setTimeout(() => loader.style.width = '0%', 500);
+        } catch(e) { alert("Errore connessione"); }
     }
 
     function render() {
@@ -157,7 +212,6 @@
         document.getElementById('a-vis').innerText = (c.visibility/1000).toFixed(0) + " km";
         document.getElementById('a-wind').innerText = Math.round(c.wind_gusts_10m) + " km/h";
 
-        // Tile Orarie
         const hRow = document.getElementById('h-row'); hRow.innerHTML = '';
         const hNow = new Date().getHours() + 1;
         for(let i=0; i<3; i++) {
@@ -165,7 +219,6 @@
             hRow.innerHTML += `<div class="tile" onclick="openDetail('h',${idx})"><div class="t-head">${idx}:00</div><div class="t-val">${Math.round(db.hourly.temperature_2m[idx])}°</div><div class="t-sub">💧${db.hourly.precipitation_probability[idx]}%</div></div>`;
         }
 
-        // Tile Giornaliere
         const dRow = document.getElementById('d-row'); dRow.innerHTML = '';
         const labs = ['Oggi', 'Domani', 'Dopodomani'];
         for(let i=0; i<3; i++) {
@@ -183,17 +236,15 @@
         const m = document.getElementById('modal');
         if(type === 'h') {
             document.getElementById('m-title').innerText = `Dettaglio ore ${idx}:00`;
-            document.getElementById('m-text').innerHTML = `Temperatura: ${Math.round(db.hourly.temperature_2m[idx])}°C<br>Percepita: ${Math.round(db.hourly.apparent_temperature[idx])}°C<br>Pioggia: ${db.hourly.precipitation_probability[idx]}%<br>UV: ${db.hourly.uv_index[idx].toFixed(1)}`;
+            document.getElementById('m-text').innerHTML = `Temp: ${Math.round(db.hourly.temperature_2m[idx])}°C<br>Perc: ${Math.round(db.hourly.apparent_temperature[idx])}°C<br>Pioggia: ${db.hourly.precipitation_probability[idx]}%<br>UV: ${db.hourly.uv_index[idx].toFixed(1)}`;
         } else {
-            const day = idx === 0 ? 'Oggi' : idx === 1 ? 'Domani' : 'Dopodomani';
-            document.getElementById('m-title').innerText = `Previsione ${day}`;
-            document.getElementById('m-text').innerHTML = `Massima: ${Math.round(db.daily.temperature_2m_max[idx])}°C<br>Percepita max: ${Math.round(db.daily.apparent_temperature_max[idx])}°C<br>Pioggia max: ${db.daily.precipitation_probability_max[idx]}%<br>UV max: ${db.daily.uv_index_max[idx].toFixed(1)}`;
+            document.getElementById('m-title').innerText = `Previsione ${idx === 0 ? 'Oggi' : idx === 1 ? 'Domani' : 'Dopodomani'}`;
+            document.getElementById('m-text').innerHTML = `Max: ${Math.round(db.daily.temperature_2m_max[idx])}°C<br>Percepita: ${Math.round(db.daily.apparent_temperature_max[idx])}°C<br>Pioggia: ${db.daily.precipitation_probability_max[idx]}%<br>UV: ${db.daily.uv_index_max[idx].toFixed(1)}`;
         }
         m.style.display = 'flex';
     }
 
-    window.onload = init;
-    document.addEventListener("visibilitychange", () => { if(!document.hidden) init(); });
+    window.onload = initGPS;
 </script>
 </body>
 </html>

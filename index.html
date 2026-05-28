@@ -4,248 +4,327 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
-    <title>Honor Weather & Journey Planner</title>
+    <title>Honor Ultimate Hub</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { 
-            --bg: #000; --card: #111; --accent: #3b82f6; --text: #fff; --dim: #777; 
-            --border: rgba(255,255,255,0.1); --danger: #ff3b3b; --safe: #00e676; 
-            --warning: #facc15; --glass: rgba(255,255,255,0.05);
-        }
+        :root { --bg: #000; --card: #111; --accent: #3b82f6; --text: #fff; --dim: #777; --border: rgba(255,255,255,0.1); --safe: #00e676; --warning: #facc15; --danger: #ff3b3b; }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; padding: env(safe-area-inset-top) 15px 40px 15px; }
-        
-        #loader { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); z-index: 9999; transition: width 0.4s ease; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* HEADER & SEARCH */
-        header { margin-bottom: 20px; position: relative; }
-        .search-group { display: flex; gap: 10px; margin-bottom: 15px; }
-        #search-input { flex: 1; background: var(--card); border: 1px solid var(--border); padding: 14px; border-radius: 18px; color: #fff; outline: none; }
+        /* Navigation */
+        nav { background: #080808; border-top: 1px solid var(--border); height: 70px; display: flex; justify-content: space-around; align-items: center; z-index: 9999; padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; color: var(--dim); font-size: 0.7rem; font-weight: 600; cursor: pointer; flex: 1; }
+        .nav-item.active { color: var(--accent); }
+        .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
+
+        /* Containers */
+        .page { display: none; height: calc(100vh - 70px); overflow-y: auto; padding: 15px 15px 40px 15px; }
+        .page.active { display: block; }
+        #loader { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); z-index: 10000; transition: width 0.4s; }
+
+        /* --- METEO UI --- */
+        .search-row { display: flex; gap: 8px; margin-bottom: 15px; position: relative; }
+        #search-input { flex: 1; background: var(--card); border: 1px solid var(--border); padding: 14px; border-radius: 18px; color: #fff; }
         #search-results { position: absolute; top: 60px; left: 0; width: calc(100% - 60px); background: #1a1a1a; border-radius: 15px; z-index: 5000; display: none; border: 1px solid #333; overflow: hidden; }
         .search-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; font-size: 0.85rem; }
-
-        .location-info { background: var(--card); border: 1px solid var(--border); padding: 16px; border-radius: 22px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .loc-name { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-        .badge { font-size: 0.6rem; padding: 2px 8px; border-radius: 6px; font-weight: 800; }
-        .badge-home { background: var(--accent); color: #fff; }
-        .badge-risk { background: var(--danger); color: #fff; }
-
-        /* DASHBOARD GRID */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        
+        .clock-tile { background: linear-gradient(135deg, #111, #000); border: 1px solid var(--border); padding: 18px; border-radius: 24px; margin-bottom: 15px; }
+        .clock-main { display: flex; justify-content: space-between; align-items: flex-end; }
+        .local-time { font-size: 2rem; font-weight: 800; color: var(--accent); }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .card { background: var(--card); border: 1px solid var(--border); padding: 18px; border-radius: 22px; position: relative; }
-        .card .label { font-size: 0.6rem; color: var(--dim); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; display: block; }
-        .card .val { font-size: 1.6rem; font-weight: 800; }
-        .card .sub-info { font-size: 0.65rem; color: var(--accent); margin-top: 5px; font-weight: 600; display: block; }
+        .card .label { font-size: 0.55rem; color: var(--dim); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; display: block; }
+        .card .val { font-size: 1.5rem; font-weight: 800; }
+        .card .comp { font-size: 0.65rem; color: var(--accent); margin-top: 4px; display: block; }
 
-        /* JOURNEY TIMELINE (New Component) */
-        .journey-section { display: none; margin-bottom: 25px; animation: fadeIn 0.5s; }
-        .timeline { display: flex; flex-direction: column; gap: 8px; position: relative; padding-left: 20px; }
-        .timeline::before { content: ''; position: absolute; left: 5px; top: 10px; bottom: 10px; width: 2px; background: #333; }
-        .step { background: var(--glass); padding: 12px 15px; border-radius: 15px; position: relative; border: 1px solid var(--border); }
-        .step::after { content: ''; position: absolute; left: -19px; top: 50%; transform: translateY(-50%); width: 8px; height: 8px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); }
-        .step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-        .step-title { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
-        .step-desc { font-size: 0.7rem; color: var(--dim); }
+        .advice-box { background: rgba(59, 130, 246, 0.05); border: 1px solid var(--accent); padding: 15px; border-radius: 20px; margin-bottom: 15px; font-size: 0.8rem; display: flex; gap: 12px; align-items: center; }
+        .scroll-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+        .tile-h { flex: 0 0 90px; background: var(--card); border: 1px solid var(--border); padding: 12px 8px; border-radius: 18px; text-align: center; }
+        .tile-h.active { border-color: var(--accent); background: rgba(59, 130, 246, 0.1); }
 
-        /* COMPARISON TABLE */
-        .comp-table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 20px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 20px; }
-        .comp-table th { background: var(--glass); font-size: 0.6rem; color: var(--dim); text-transform: uppercase; padding: 10px; text-align: left; }
-        .comp-table td { padding: 12px 10px; font-size: 0.8rem; border-bottom: 1px solid var(--border); }
-        .highlight { color: var(--warning); font-weight: 700; }
+        /* --- PARKING UI --- */
+        #park-page { padding: 0; position: relative; display: flex; flex-direction: column; }
+        #map { flex: 1.2; width: 100%; z-index: 1; }
+        .park-panel { flex: 1; background: #000; border-top: 1px solid #222; padding: 20px; border-top-left-radius: 30px; border-top-right-radius: 30px; overflow-y: auto; z-index: 2; box-shadow: 0 -10px 30px rgba(0,0,0,0.8); }
+        .btn-park { width: 100%; background: var(--accent); color: #fff; border: none; padding: 18px; border-radius: 20px; font-weight: 800; text-transform: uppercase; margin-bottom: 20px; }
+        .parked-card { background: var(--card); border-left: 4px solid var(--safe); padding: 20px; border-radius: 22px; display: none; flex-direction: column; gap: 10px; }
+        .s-tile { flex: 0 0 140px; background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 20px; font-size: 0.75rem; }
+        .s-dist { color: var(--accent); font-weight: 800; font-size: 0.65rem; background: rgba(59, 130, 246, 0.1); padding: 2px 6px; border-radius: 5px; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Modals */
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); backdrop-filter:blur(10px); display:none; align-items:center; justify-content:center; z-index:10001; padding:30px; }
+        .modal-content { background:#111; border:1px solid #333; border-radius:25px; padding:30px; width:100%; max-width:380px; text-align:center; }
     </style>
 </head>
 <body>
 
 <div id="loader" style="width: 0%"></div>
 
-<header>
-    <div class="search-group">
-        <input type="text" id="search-input" placeholder="Destinazione viaggio..." autocomplete="off">
-        <button onclick="initGPS()" style="background:var(--card); border:1px solid var(--border); width:50px; border-radius:18px; color:white; font-size:1.2rem;">📍</button>
-    </div>
-    <div id="search-results"></div>
-
-    <div class="location-info">
-        <div class="loc-name">
-            <span id="city-name">Posizione...</span>
-            <span id="home-indicator" class="badge badge-home" style="display:none">HOME</span>
+<!-- PAGE: WEATHER -->
+<div id="weather-page" class="page active">
+    <header>
+        <div class="search-row">
+            <input type="text" id="search-input" placeholder="Cerca città..." autocomplete="off">
+            <button class="btn-action" onclick="refreshGPS()" style="background:var(--card); border:1px solid var(--border); border-radius:18px; width:50px; color:white;">📍</button>
         </div>
-        <div id="risk-score" class="badge" style="display:none">RISCHIO: 1/10</div>
-    </div>
-</header>
-
-<!-- JOURNEY PLANNER SECTION -->
-<section id="journey-planner" class="journey-section">
-    <h2 style="font-size: 0.7rem; color: var(--dim); text-transform: uppercase; margin: 0 0 12px 5px; letter-spacing: 1px;">Analisi Tragitto</h2>
-    
-    <div class="timeline">
-        <div class="step" id="step-departure">
-            <div class="step-header"><span class="step-title">Partenza</span><span id="time-dep" class="highlight">--:--</span></div>
-            <div class="step-desc">Meteo favorevole, traffico regolare.</div>
+        <div id="search-results"></div>
+        <div class="clock-tile">
+            <div class="clock-main">
+                <div>
+                    <b id="city-label" style="font-size: 0.6rem; color: var(--accent); text-transform: uppercase;">Posizione Attuale</b>
+                    <div id="city-name" style="font-size: 1.1rem; font-weight: 800;">Caricamento...</div>
+                </div>
+                <div class="local-time" id="local-time">00:00</div>
+            </div>
+            <div id="italy-time" style="font-size: 0.7rem; color: var(--dim); margin-top: 5px;">In Italia: 00:00</div>
         </div>
-        <div class="step" id="step-mid">
-            <div class="step-header"><span class="step-title">Criticità Percorso</span><span id="mid-info" class="badge">--</span></div>
-            <div class="step-desc" id="mid-desc">Verifica fattori esogeni in corso...</div>
+    </header>
+
+    <main class="grid">
+        <div class="card" onclick="explain('temp')"><span class="label">Temperatura</span><div class="val"><span id="c-temp">--</span>°</div><div class="comp" id="comp-temp"></div></div>
+        <div class="card" onclick="explain('feels')"><span class="label">Percepita</span><div class="val"><span id="c-feels">--</span>°</div><div class="comp" id="comp-feels"></div></div>
+        <div class="card" onclick="explain('rain')"><span class="label">Pioggia</span><div class="val"><span id="c-rain">--</span>%</div><div class="comp" id="comp-rain"></div></div>
+        <div class="card" onclick="explain('hum')"><span class="label">Umidità</span><div class="val"><span id="c-hum">--</span>%</div><div class="comp" id="comp-hum"></div></div>
+    </main>
+
+    <div class="advice-box">
+        <span id="adv-icon" style="font-size: 1.5rem;">🧥</span>
+        <div id="adv-text">Analisi consigli abbigliamento in corso...</div>
+    </div>
+
+    <section>
+        <h2>Forecast 5 Ore (Tocca per dati)</h2>
+        <div class="scroll-row" id="h-row"></div>
+    </section>
+
+    <section>
+        <h2>Insight & Allerte</h2>
+        <div class="grid" style="grid-template-columns: repeat(2, 1fr);">
+            <div class="card" style="padding:12px;"><span class="label">Vento</span><div id="i-wind" style="font-size:0.9rem; font-weight:700;">--</div></div>
+            <div class="card" style="padding:12px;"><span class="label">Indice UV</span><div id="i-uv" style="font-size:0.9rem; font-weight:700;">--</div></div>
         </div>
-        <div class="step" id="step-arrival">
-            <div class="step-header"><span class="step-title">Arrivo Previsto</span><span id="time-arr" class="highlight">--:--</span></div>
-            <div class="step-desc" id="arr-desc">Destinazione raggiunta.</div>
+    </section>
+</div>
+
+<!-- PAGE: PARKING -->
+<div id="park-page" class="page">
+    <div id="map"></div>
+    <div class="park-panel">
+        <button id="btn-park" class="btn-park">🅿️ Segna Parcheggio Qui</button>
+        
+        <div id="parked-info" class="parked-card">
+            <div style="font-size: 0.65rem; color: var(--safe); font-weight: 800;">AUTO SALVATA</div>
+            <div id="p-addr" style="font-size: 0.95rem; font-weight: 600; margin: 5px 0;">Indirizzo...</div>
+            <div id="p-timer" style="font-size: 0.8rem; color: var(--dim);">Parcheggiata da: 0m</div>
+            <a href="#" id="p-nav" target="_blank" style="background:#fff; color:#000; text-align:center; padding:15px; border-radius:15px; font-weight:800; text-decoration:none; margin-top:10px;">🚀 NAVIGA ALL'AUTO</a>
+            <button onclick="resetPark()" style="background:none; border:none; color:var(--dim); font-size:0.7rem; text-decoration:underline; margin-top:10px;">Ho ritrovato l'auto</button>
+        </div>
+
+        <div id="suggestion-box" style="margin-top: 20px;">
+            <h2 style="font-size: 0.7rem; color: var(--dim); text-transform: uppercase; margin-bottom: 10px;">Parcheggi Gratis Vicini</h2>
+            <div class="scroll-row" id="p-suggestions"></div>
         </div>
     </div>
-</section>
+</div>
 
-<!-- MAIN METRICS -->
-<main class="grid">
-    <div class="card">
-        <span class="label">Temperatura</span>
-        <div class="val"><span id="c-temp">--</span>°</div>
-        <span class="sub-info" id="sub-temp"></span>
+<nav>
+    <div class="nav-item active" onclick="showPage('weather')">
+        <svg viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+        Meteo
     </div>
-    <div class="card">
-        <span class="label">Costo Stimato</span>
-        <div class="val" id="c-cost">--</div>
-        <span class="sub-info" id="sub-cost">Carburante + Pedaggi</span>
+    <div class="nav-item" onclick="showPage('park')">
+        <svg viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
+        Auto
     </div>
-    <div class="card">
-        <span class="label">Fattori Esogeni</span>
-        <div class="val" id="c-exo">Lieve</div>
-        <span class="sub-info" id="sub-exo">Meteo & Traffico</span>
-    </div>
-    <div class="card">
-        <span class="label">Umidità / Pioggia</span>
-        <div class="val"><span id="c-hum">--</span>%</div>
-        <span class="sub-info" id="sub-rain">Precipitazioni</span>
-    </div>
-</main>
+</nav>
 
-<section id="analysis-table">
-    <table class="comp-table">
-        <thead>
-            <tr><th>Parametro</th><th>Località</th><th>Dettaglio</th></tr>
-        </thead>
-        <tbody id="table-body">
-            <!-- Populated via JS -->
-        </tbody>
-    </table>
-</section>
+<div id="modal" class="modal" onclick="this.style.display='none'">
+    <div class="modal-content"><h3 id="m-title" style="color:var(--accent); margin-bottom:15px;">INFO</h3><p id="m-text" style="color:#ccc; line-height:1.5;"></p></div>
+</div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     let homeData = null;
-    let destinationData = null;
+    let activeData = null;
+    let clockInterval = null;
+    let map, userMarker, carMarker;
+    let userPos = null;
 
-    // --- LOGICA DI PIANIFICAZIONE AVANZATA ---
-
-    async function initGPS() {
-        navigator.geolocation.getCurrentPosition(async p => {
-            const lat = p.coords.latitude;
-            const lon = p.coords.longitude;
-            homeData = await fetchWeatherData(lat, lon);
-            updateUI(homeData, "Casa", true);
-            document.getElementById('journey-planner').style.display = 'none';
-        });
+    // --- NAVIGATION ---
+    function showPage(p) {
+        document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(ni => ni.classList.remove('active'));
+        document.getElementById(p + '-page').classList.add('active');
+        event.currentTarget.classList.add('active');
+        if(p === 'park') setTimeout(() => map.invalidateSize(), 200);
     }
 
-    async function fetchWeatherData(lat, lon) {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation_probability,relative_humidity_2m,wind_speed_10m&timezone=auto`;
-        const res = await fetch(url);
-        return await res.json();
-    }
-
-    async function processJourney(destLat, destLon, destName) {
-        document.getElementById('loader').style.width = '50%';
-        destinationData = await fetchWeatherData(destLat, destLon);
-        
-        // Calcolo Variabili Tragitto (Simulate basate su distanza e dati reali)
-        const distance = calculateDistance(homeData.latitude, homeData.longitude, destLat, destLon);
-        const cost = (distance * 0.15) + 12.50; // 0.15€/km + pedaggio medio
-        const risk = calculateRiskScore(destinationData.current);
-        
-        updateUI(destinationData, destName, false, cost, risk, distance);
-        updateTimeline(destinationData, risk);
-        
-        document.getElementById('loader').style.width = '100%';
-        setTimeout(() => document.getElementById('loader').style.width = '0', 500);
-    }
-
-    function calculateRiskScore(data) {
-        let score = 2; // Base
-        if (data.precipitation_probability > 30) score += 2;
-        if (data.wind_speed_10m > 20) score += 2;
-        if (data.temperature_2m < 3) score += 2;
-        return Math.min(score, 10);
-    }
-
-    function updateUI(data, name, isHome, cost = null, risk = null, dist = null) {
-        document.getElementById('city-name').innerText = name;
-        document.getElementById('home-indicator').style.display = isHome ? 'inline-block' : 'none';
-        document.getElementById('c-temp').innerText = Math.round(data.current.temperature_2m);
-        document.getElementById('c-hum').innerText = data.current.relative_humidity_2m;
-        
-        if (!isHome && cost) {
-            document.getElementById('journey-planner').style.display = 'block';
-            document.getElementById('c-cost').innerText = `€${cost.toFixed(2)}`;
-            document.getElementById('risk-score').style.display = 'inline-block';
-            document.getElementById('risk-score').innerText = `RISCHIO: ${risk}/10`;
-            document.getElementById('risk-score').style.background = risk > 6 ? 'var(--danger)' : (risk > 4 ? 'var(--warning)' : 'var(--safe)');
-            
-            // Comparison Table Update
-            const rows = [
-                ['Distanza', `${Math.round(dist)} km`, 'Tragitto'],
-                ['Pedaggi stimati', '€12.50', 'Autostrade'],
-                ['Meteo Arrivo', data.current.precipitation_probability > 20 ? 'Piovoso' : 'Sereno', 'Target']
-            ];
-            document.getElementById('table-body').innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td class="highlight">${r[1]}</td><td>${r[2]}</td></tr>`).join('');
-        }
-    }
-
-    function updateTimeline(data, risk) {
-        const now = new Date();
-        document.getElementById('time-dep').innerText = now.getHours() + ":" + now.getMinutes();
-        document.getElementById('time-arr').innerText = (now.getHours() + 2) % 24 + ":" + now.getMinutes(); // Sim
-        
-        const mid = document.getElementById('mid-info');
-        mid.innerText = risk > 5 ? "CRITICO" : "REGOLARE";
-        mid.className = `badge ${risk > 5 ? 'badge-risk' : 'badge-home'}`;
-        document.getElementById('mid-desc').innerText = risk > 5 ? "Attenzione: Vento o pioggia sul percorso." : "Fattori esogeni stabili lungo la tratta.";
-    }
-
-    // --- SEARCH AUTOCOMPLETE ---
+    // --- WEATHER LOGIC ---
     const searchInput = document.getElementById('search-input');
-    const resultsBox = document.getElementById('search-results');
+    const resultsDiv = document.getElementById('search-results');
 
     searchInput.addEventListener('input', async () => {
-        const query = searchInput.value;
-        if (query.length < 3) return;
-        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=it`);
+        const q = searchInput.value;
+        if(q.length < 3) { resultsDiv.style.display = 'none'; return; }
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=it`);
         const data = await res.json();
-        if (data.results) {
-            resultsBox.innerHTML = data.results.map(r => `
-                <div class="search-item" onclick="selectCity(${r.latitude}, ${r.longitude}, '${r.name}')">
-                    ${r.name} (${r.country})
-                </div>
-            `).join('');
-            resultsBox.style.display = 'block';
+        if(data.results) {
+            resultsDiv.innerHTML = data.results.map(r => `<div class="search-item" onclick="selectCity(${r.latitude}, ${r.longitude}, '${r.name}', '${r.timezone}')">${r.name} (${r.country})</div>`).join('');
+            resultsDiv.style.display = 'block';
         }
     });
 
-    function selectCity(lat, lon, name) {
-        resultsBox.style.display = 'none';
+    async function selectCity(lat, lon, name, tz) {
+        resultsDiv.style.display = 'none';
         searchInput.value = '';
-        processJourney(lat, lon, name);
+        document.getElementById('city-label').innerText = "Località Cercata";
+        fetchWeather(lat, lon, name, tz, false);
     }
 
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // km
-        const dLat = (lat2-lat1) * Math.PI / 180;
-        const dLon = (lon2-lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    async function refreshGPS() {
+        navigator.geolocation.getCurrentPosition(p => {
+            userPos = {lat: p.coords.latitude, lon: p.coords.longitude};
+            fetchWeather(userPos.lat, userPos.lon, "Casa", "auto", true);
+        });
     }
 
-    window.onload = initGPS;
+    async function fetchWeather(lat, lon, name, tz, isHome) {
+        const ld = document.getElementById('loader'); ld.style.width = '50%';
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation_probability,relative_humidity_2m,uv_index,wind_speed_10m&hourly=temperature_2m,apparent_temperature,precipitation_probability,relative_humidity_2m&timezone=${encodeURIComponent(tz)}`);
+        const data = await res.json();
+        if(isHome) homeData = data;
+        activeData = data;
+        renderWeather(name);
+        ld.style.width = '100%'; setTimeout(()=>ld.style.width='0', 500);
+    }
+
+    function renderWeather(name) {
+        document.getElementById('city-name').innerText = name;
+        const cur = activeData.current;
+        document.getElementById('c-temp').innerText = Math.round(cur.temperature_2m);
+        document.getElementById('c-feels').innerText = Math.round(cur.apparent_temperature);
+        document.getElementById('c-rain').innerText = cur.precipitation_probability;
+        document.getElementById('c-hum').innerText = cur.relative_humidity_2m;
+        document.getElementById('i-wind').innerText = Math.round(cur.wind_speed_10m) + " km/h";
+        document.getElementById('i-uv').innerText = cur.uv_index.toFixed(1);
+
+        if(homeData && name !== "Casa") {
+            document.getElementById('comp-temp').innerText = `Casa: ${Math.round(homeData.current.temperature_2m)}°`;
+            document.getElementById('comp-rain').innerText = `Casa: ${homeData.current.precipitation_probability}%`;
+        } else {
+            document.getElementById('comp-temp').innerText = "";
+            document.getElementById('comp-rain').innerText = "";
+        }
+
+        updateAdvice(cur);
+        startClock(activeData.timezone);
+        
+        const hRow = document.getElementById('h-row'); hRow.innerHTML = '';
+        const hNow = new Date().getHours();
+        for(let i=1; i<=5; i++) {
+            const idx = hNow + i;
+            hRow.innerHTML += `<div class="tile-h" onclick="updateDashboard(${idx})"><div class="t-head">${idx%24}:00</div><div class="t-val">${Math.round(activeData.hourly.temperature_2m[idx])}°</div></div>`;
+        }
+    }
+
+    function updateDashboard(idx) {
+        const h = activeData.hourly;
+        document.getElementById('c-temp').innerText = Math.round(h.temperature_2m[idx]);
+        document.getElementById('c-rain').innerText = h.precipitation_probability[idx];
+        document.getElementById('c-hum').innerText = h.relative_humidity_2m[idx];
+    }
+
+    function updateAdvice(c) {
+        let t = "Clima mite, abbigliamento leggero."; let i = "👕";
+        if(c.temperature_2m > 26) { t = "Caldo, vestiti leggeri e bevi acqua."; i = "🩳"; }
+        if(c.temperature_2m < 15) { t = "Fresco, consigliata una giacca."; i = "🧥"; }
+        if(c.precipitation_probability > 40) t += " Porta l'ombrello.";
+        document.getElementById('adv-text').innerText = t;
+        document.getElementById('adv-icon').innerText = i;
+    }
+
+    function startClock(tz) {
+        if(clockInterval) clearInterval(clockInterval);
+        clockInterval = setInterval(() => {
+            const n = new Date();
+            document.getElementById('local-time').innerText = n.toLocaleTimeString('it-IT', {timeZone: tz, hour:'2-digit', minute:'2-digit'});
+            document.getElementById('italy-time').innerText = "In Italia: " + n.toLocaleTimeString('it-IT', {timeZone:'Europe/Rome', hour:'2-digit', minute:'2-digit'});
+        }, 1000);
+    }
+
+    // --- PARKING LOGIC ---
+    function initMap() {
+        map = L.map('map', {zoomControl:false}).setView([45, 9], 15);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+        
+        const saved = JSON.parse(localStorage.getItem('honor_park_final'));
+        if(saved) showSavedPark(saved);
+
+        navigator.geolocation.watchPosition(p => {
+            const coords = [p.coords.latitude, p.coords.longitude];
+            userPos = {lat: coords[0], lon: coords[1]};
+            if(!userMarker) {
+                userMarker = L.circleMarker(coords, {radius:8, color:'#3b82f6', fillOpacity:1}).addTo(map);
+                map.setView(coords, 16);
+                findNearbyParking(coords[0], coords[1]);
+            } else {
+                userMarker.setLatLng(coords);
+            }
+        });
+    }
+
+    async function findNearbyParking(lat, lon) {
+        const q = `[out:json];node["amenity"="parking"](around:1000,${lat},${lon});out 10;`;
+        const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        const container = document.getElementById('p-suggestions');
+        container.innerHTML = '';
+        
+        const sorted = data.elements.map(el => {
+            const d = Math.sqrt(Math.pow(lat-el.lat, 2) + Math.pow(lon-el.lon, 2)) * 111;
+            return {...el, dist: d.toFixed(1)};
+        }).sort((a,b) => a.dist - b.dist);
+
+        sorted.forEach(el => {
+            container.innerHTML += `<div class="s-tile" onclick="window.open('https://www.google.com/maps?q=${el.lat},${el.lon}')"><b>🅿️ Parcheggio</b><br><span class="s-dist">${el.dist} km</span></div>`;
+        });
+    }
+
+    document.getElementById('btn-park').onclick = async () => {
+        if(!userPos) return;
+        const time = Date.now();
+        const g = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${userPos.lat}&lon=${userPos.lon}`).then(r=>r.json());
+        const addr = g.address.road || "Indirizzo rilevato";
+        const data = {lat: userPos.lat, lon: userPos.lon, time, addr};
+        localStorage.setItem('honor_park_final', JSON.stringify(data));
+        showSavedPark(data);
+    };
+
+    function showSavedPark(data) {
+        document.getElementById('btn-park').style.display = 'none';
+        document.getElementById('parked-info').style.display = 'flex';
+        document.getElementById('p-addr').innerText = data.addr;
+        document.getElementById('p-nav').href = `https://www.google.com/maps/dir/?api=1&destination=${data.lat},${data.lon}`;
+        if(carMarker) map.removeLayer(carMarker);
+        carMarker = L.marker([data.lat, data.lon], {icon: L.divIcon({html:'🚗', className:'', iconSize:[30,30]})}).addTo(map);
+        setInterval(() => {
+            const m = Math.floor((Date.now() - data.time)/60000);
+            document.getElementById('p-timer').innerText = `Parcheggiata da: ${m}m`;
+        }, 60000);
+    }
+
+    function resetPark() { localStorage.removeItem('honor_park_final'); location.reload(); }
+
+    function explain(k) {
+        const exp = {temp: "Temp reale", feels: "Percepita", rain: "Probabilità pioggia", hum: "Umidità aria"};
+        document.getElementById('m-title').innerText = k.toUpperCase();
+        document.getElementById('m-text').innerText = exp[k];
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    window.onload = () => { refreshGPS(); initMap(); };
 </script>
-
 </body>
 </html>

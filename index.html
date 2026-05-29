@@ -4,44 +4,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
-    <title>Weather Sentinel Safe</title>
+    <title>Honor Weather Gold</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #000; --card: #121212; --accent: #3b82f6; --text: #fff; --dim: #888; --danger: #ff3b3b; --border: rgba(255,255,255,0.1); }
+        :root { 
+            --bg: #000; --card: #121212; --accent: #3b82f6; --text: #fff; --dim: #888; 
+            --border: rgba(255,255,255,0.1); --danger: #ff3b3b; --safe: #00e676; 
+            --glow: rgba(59, 130, 246, 0.2);
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; padding: 20px 20px 40px; }
-        
+        body { 
+            background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; 
+            padding: env(safe-area-inset-top) 20px 40px; overflow-x: hidden;
+            transition: background 0.5s ease;
+        }
+
         #loader { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); z-index: 10000; width: 0%; transition: width 0.3s; }
 
-        /* Header & Search */
-        header { margin-bottom: 20px; }
-        .search-group { display: flex; gap: 8px; margin-bottom: 15px; }
-        #search-input { flex: 1; background: var(--card); border: 1px solid var(--border); padding: 14px; border-radius: 18px; color: #fff; }
-        .btn-gps { background: var(--card); border: 1px solid var(--border); width: 50px; border-radius: 18px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        /* Search & Navigation */
+        header { margin-bottom: 20px; position: relative; z-index: 5001; }
+        .nav-row { display: flex; gap: 10px; align-items: center; }
+        .search-container { flex: 1; position: relative; }
+        #search-input { 
+            width: 100%; background: var(--card); border: 1px solid var(--border); 
+            padding: 14px 18px; border-radius: 20px; color: #fff; font-size: 0.9rem;
+        }
+        .btn-icon { 
+            background: var(--card); border: 1px solid var(--border); width: 52px; height: 52px; 
+            border-radius: 20px; color: white; display: flex; align-items: center; 
+            justify-content: center; font-size: 1.4rem; cursor: pointer; 
+        }
 
-        /* Fallback UI (Nascosta di default) */
-        #fallback-ui { display: none; text-align: center; padding: 20px; background: #111; border-radius: 20px; border: 1px solid var(--danger); margin-bottom: 20px; }
+        /* Risultati Ricerca Indicizzata */
+        #search-results {
+            position: absolute; top: 60px; left: 0; right: 0; 
+            background: #1a1a1a; border-radius: 20px; border: 1px solid #333;
+            max-height: 250px; overflow-y: auto; display: none; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+        .search-item { padding: 14px 18px; border-bottom: 1px solid #222; cursor: pointer; font-size: 0.85rem; }
+        .search-item:last-child { border-bottom: none; }
 
-        /* Hero */
-        .hero { text-align: center; padding: 20px 0; }
-        .city-name { font-size: 1.4rem; font-weight: 800; }
-        .temp-main { font-size: 5.5rem; font-weight: 800; line-height: 1; letter-spacing: -4px; margin: 10px 0; }
-        .condition { color: var(--accent); font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; }
-        .main-icon { width: 120px; height: 120px; margin: 0 auto; display: block; filter: invert(1) brightness(1.5); }
+        /* Allerta Strip */
+        #hail-alert { 
+            display: none; background: rgba(255, 59, 59, 0.2); border: 1px solid var(--danger); 
+            padding: 12px; border-radius: 18px; margin-bottom: 15px; text-align: center;
+            color: var(--danger); font-weight: 800; font-size: 0.75rem; animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-        /* Grid Dati */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
-        .card { background: var(--card); border: 1px solid var(--border); padding: 18px; border-radius: 24px; }
-        .card .label { font-size: 0.6rem; color: var(--dim); text-transform: uppercase; font-weight: 700; margin-bottom: 5px; display: block; }
-        .card .val { font-size: 1.6rem; font-weight: 800; }
+        /* Hero UI */
+        .hero { 
+            text-align: center; padding: 10px 0 20px; 
+            background: radial-gradient(circle at center, var(--glow) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .city-name { font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .main-icon { width: 150px; height: 150px; margin: 5px auto; display: block; }
+        .temp-hero { font-size: 5.5rem; font-weight: 800; line-height: 1; letter-spacing: -4px; }
+        .condition { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; margin-top: 10px; color: var(--accent); }
 
-        /* Scroller */
-        .scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; margin-top: 20px; scrollbar-width: none; }
+        /* Maps Link */
+        .maps-link {
+            display: inline-flex; align-items: center; gap: 6px; background: #111; 
+            padding: 8px 16px; border-radius: 100px; border: 1px solid #222;
+            color: var(--dim); font-size: 0.7rem; text-decoration: none; margin-top: 15px;
+        }
+
+        /* Grid */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 25px 0; }
+        .card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 28px; }
+        .card .label { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; font-weight: 700; margin-bottom: 5px; display: block; }
+        .card .val { font-size: 1.7rem; font-weight: 800; }
+
+        /* Forecast */
+        .scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 15px; scrollbar-width: none; }
         .scroll::-webkit-scrollbar { display: none; }
-        .tile { flex: 0 0 90px; background: var(--card); border: 1px solid var(--border); padding: 15px 10px; border-radius: 20px; text-align: center; }
-        .tile img { width: 25px; filter: invert(1); margin: 5px 0; }
-        
-        .alert-bar { display: none; background: rgba(255, 59, 59, 0.15); border: 1px solid var(--danger); color: var(--danger); padding: 12px; border-radius: 15px; margin: 10px 0; text-align: center; font-weight: 800; font-size: 0.7rem; }
+        .tile { flex: 0 0 95px; background: var(--card); border: 1px solid var(--border); padding: 15px 10px; border-radius: 22px; text-align: center; }
+        .tile img { width: 30px; filter: invert(1); margin: 5px 0; }
     </style>
 </head>
 <body>
@@ -49,24 +88,26 @@
 <div id="loader"></div>
 
 <header>
-    <div class="search-group">
-        <input type="text" id="search-input" placeholder="Scrivi una città..." autocomplete="off">
-        <button class="btn-gps" onclick="getLocation(true)">📍</button>
+    <div class="nav-row">
+        <button class="btn-icon" onclick="goHome()" title="Torna a Arsago Seprio">🏠</button>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Cerca città..." autocomplete="off">
+            <div id="search-results"></div>
+        </div>
+        <button class="btn-icon" onclick="initGPS()" title="Usa GPS">📍</button>
     </div>
 </header>
 
-<div id="fallback-ui">
-    <p style="font-size: 0.8rem; margin-bottom: 10px;">Il GPS non risponde o è bloccato.</p>
-    <button onclick="location.reload()" style="background:var(--accent); color:white; border:none; padding:8px 15px; border-radius:10px; font-weight:bold;">RIPROVA</button>
-</div>
+<div id="hail-alert">⚠️ ALLERTA GRANDINE - PROTEGGI L'AUTO</div>
 
-<div id="hail-alert" class="alert-bar">⚠️ ALLERTA GRANDINE RILEVATA</div>
-
-<main class="hero" id="main-content">
-    <div class="city-name" id="city">Rilevamento...</div>
+<main class="hero">
+    <div class="city-name"><span id="city">Rilevamento...</span></div>
+    <div id="clocks" style="font-size: 0.65rem; color: var(--dim); margin-top: 5px;"></div>
     <img id="m-icon" src="" class="main-icon">
-    <div class="temp-main"><span id="hero-t">--</span>°</div>
-    <div class="condition" id="hero-desc">Sincronizzazione...</div>
+    <div class="temp-hero"><span id="hero-t">--</span>°</div>
+    <div class="condition" id="hero-desc">Sincronizzazione</div>
+    
+    <a href="#" id="maps-link" target="_blank" class="maps-link">📍 Vedi posizione su Maps</a>
 </main>
 
 <div class="grid">
@@ -76,78 +117,103 @@
     <div class="card"><span class="label">Indice UV</span><div class="val" id="c-uv">--</div></div>
 </div>
 
-<section style="margin-top: 30px;">
-    <h3 style="font-size: 0.7rem; color: var(--dim); text-transform: uppercase; margin-bottom: 10px;">Prossime Ore</h3>
+<section>
+    <h3 style="font-size: 0.75rem; color: var(--dim); text-transform: uppercase; margin-bottom: 15px; padding-left: 5px;">Prossime Ore</h3>
     <div class="scroll" id="h-row"></div>
 </section>
 
 <script>
     const weatherMap = { 
-        0: ["Sereno", "sun"], 1: ["Quasi Sereno", "cloud-sun"], 2: ["Nuvole", "cloud"], 3: ["Coperto", "cloud"], 
-        45: ["Nebbia", "cloud-fog"], 61: ["Pioggia", "cloud-rain"], 65: ["Forte Pioggia", "cloud-showers-heavy"], 
-        95: ["Temporale", "cloud-lightning"], 27: ["Grandine", "cloud-hail"], 87: ["Grandine", "cloud-hail"], 99: ["Grandine", "cloud-hail"] 
+        0: ["Sereno", "sun", "#facc15"], 
+        1: ["Quasi Sereno", "cloud-sun", "#fde047"], 
+        2: ["Nuvole Sparse", "cloud", "#94a3b8"], 
+        3: ["Coperto", "cloud", "#64748b"], 
+        45: ["Nebbia", "cloud-fog", "#94a3b8"], 
+        61: ["Pioggia", "cloud-rain", "#3b82f6"], 
+        65: ["Forte Pioggia", "cloud-showers-heavy", "#2563eb"], 
+        95: ["Temporale", "cloud-lightning", "#a855f7"], 
+        27: ["Grandine", "cloud-hail", "#ef4444"], 
+        87: ["Grandine", "cloud-hail", "#ef4444"], 
+        99: ["Grandine Forte", "cloud-hail", "#ff0000"] 
     };
 
-    async function init() {
-        document.getElementById('loader').style.width = '30%';
-        
-        // 1. Prova a caricare l'ultima posizione salvata (per velocità massima)
-        const lastPos = JSON.parse(localStorage.getItem('last_weather_pos'));
-        if (lastPos) {
-            fetchWeather(lastPos.lat, lastPos.lon, lastPos.name);
-        }
-
-        getLocation();
+    // --- CASA: Arsago Seprio ---
+    function goHome() {
+        fetchWeather(45.68, 8.73, "Arsago Seprio (Casa)");
     }
 
-    async function getLocation(forceGPS = false) {
-        // Plan A: IP Location (Sempre veloce)
-        try {
-            const ipRes = await fetch('https://get.geojs.io/v1/ip/geo.json');
-            const ipData = await ipRes.json();
-            fetchWeather(ipData.latitude, ipData.longitude, ipData.city);
-        } catch (e) { console.log("IP fallito"); }
+    // --- RICERCA INDICIZZATA ---
+    const sInput = document.getElementById('search-input');
+    const sResults = document.getElementById('search-results');
+    let searchTimeout;
 
-        // Plan B: GPS con Timeout
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (p) => {
-                    fetchWeather(p.coords.latitude, p.coords.longitude, "Tua Posizione");
-                    document.getElementById('fallback-ui').style.display = 'none';
-                },
-                (err) => { 
-                    if(forceGPS) document.getElementById('fallback-ui').style.display = 'block';
-                },
-                { enableHighAccuracy: true, timeout: 6000 } // Aspetta max 6 secondi
-            );
-        }
+    sInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        const query = sInput.value;
+        if (query.length < 3) { sResults.style.display = 'none'; return; }
+
+        searchTimeout = setTimeout(async () => {
+            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=it`);
+            const data = await res.json();
+            if (data.results) {
+                sResults.innerHTML = data.results.map(r => `
+                    <div class="search-item" onclick="selectCity(${r.latitude}, ${r.longitude}, '${r.name}')">
+                        ${r.name} (${r.country})
+                    </div>
+                `).join('');
+                sResults.style.display = 'block';
+            }
+        }, 400);
+    });
+
+    function selectCity(lat, lon, name) {
+        sResults.style.display = 'none';
+        sInput.value = "";
+        fetchWeather(lat, lon, name);
+    }
+
+    // --- CORE LOGIC ---
+    async function initGPS() {
+        // Avvio istantaneo con IP, poi GPS
+        try {
+            const ipRes = await fetch('https://ipapi.co/json/').then(r => r.json());
+            fetchWeather(ipRes.latitude, ipRes.longitude, ipRes.city);
+        } catch(e) {}
+        
+        navigator.geolocation.getCurrentPosition(p => {
+            fetchWeather(p.coords.latitude, p.coords.longitude, "Posizione Attuale");
+        }, null, {enableHighAccuracy: true});
     }
 
     async function fetchWeather(lat, lon, name) {
-        try {
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation_probability,relative_humidity_2m,uv_index,weather_code&hourly=temperature_2m,weather_code&timezone=auto`);
-            const data = await res.json();
-            
-            // Salva posizione attuale per il prossimo avvio
-            localStorage.setItem('last_weather_pos', JSON.stringify({lat, lon, name}));
-            
-            render(data, name);
-        } catch (e) { console.log("Errore API"); }
+        document.getElementById('loader').style.width = '50%';
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,precipitation_probability,relative_humidity_2m,uv_index,weather_code&hourly=temperature_2m,weather_code&timezone=auto`).then(r => r.json());
+        render(res, name, lat, lon);
+        document.getElementById('loader').style.width = '100%';
+        setTimeout(() => document.getElementById('loader').style.width = '0', 400);
     }
 
-    function render(data, name) {
+    function render(data, name, lat, lon) {
         const cur = data.current;
+        const info = weatherMap[cur.weather_code] || ["Nuvoloso", "cloud", "#3b82f6"];
+        
         document.getElementById('city').innerText = name;
         document.getElementById('hero-t').innerText = Math.round(cur.temperature_2m);
         document.getElementById('c-feels').innerText = Math.round(cur.apparent_temperature);
         document.getElementById('c-rain').innerText = cur.precipitation_probability;
         document.getElementById('c-hum').innerText = cur.relative_humidity_2m;
         document.getElementById('c-uv').innerText = cur.uv_index;
-
-        const info = weatherMap[cur.weather_code] || ["Nuvoloso", "cloud"];
         document.getElementById('hero-desc').innerText = info[0];
         document.getElementById('m-icon').src = `https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/${info[1]}.svg`;
         
+        // Google Maps Link
+        document.getElementById('maps-link').href = `https://www.google.com/maps?q=${lat},${lon}`;
+
+        // Dynamic Glow & Color
+        document.documentElement.style.setProperty('--accent', info[2]);
+        document.documentElement.style.setProperty('--glow', info[2] + '33');
+        document.getElementById('m-icon').style.filter = `invert(1) drop-shadow(0 0 10px ${info[2]})`;
+
         // Allerta Grandine
         document.getElementById('hail-alert').style.display = [27, 87, 99].includes(cur.weather_code) ? 'block' : 'none';
 
@@ -159,31 +225,14 @@
             const code = data.hourly.weather_code[idx];
             const ic = weatherMap[code] ? weatherMap[code][1] : "cloud";
             hRow.innerHTML += `<div class="tile">
-                <div class="t-time">${idx%24}:00</div>
+                <div class="t-head">${idx%24}:00</div>
                 <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/${ic}.svg">
                 <div style="font-weight:700">${Math.round(data.hourly.temperature_2m[idx])}°</div>
             </div>`;
         }
-        
-        document.getElementById('loader').style.width = '100%';
-        setTimeout(() => document.getElementById('loader').style.width = '0', 400);
     }
 
-    // Ricerca Manuale (Se il GPS fallisce, l'utente può scrivere)
-    document.getElementById('search-input').addEventListener('keypress', async (e) => {
-        if (e.key === 'Enter') {
-            const val = e.target.value;
-            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(val)}&count=1&language=it`);
-            const data = await res.json();
-            if(data.results) {
-                const c = data.results[0];
-                fetchWeather(c.latitude, c.longitude, c.name);
-                document.getElementById('fallback-ui').style.display = 'none';
-            }
-        }
-    });
-
-    window.onload = init;
+    window.onload = initGPS;
 </script>
 </body>
 </html>
